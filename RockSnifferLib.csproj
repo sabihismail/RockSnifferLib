@@ -127,6 +127,7 @@
     <Compile Include="Sniffing\Sniffer.cs" />
     <Compile Include="Sniffing\SnifferState.cs" />
     <Compile Include="Sniffing\SongDetails.cs" />
+    <Compile Include="Sniffing\SongDetailsCustomsForge.cs" />
     <Compile Include="Sniffing\ToolkitDetails.cs" />
     <Compile Include="SysHelpers\ImageBase64Converter.cs" />
     <Compile Include="SysHelpers\MemoryHelper.cs" />

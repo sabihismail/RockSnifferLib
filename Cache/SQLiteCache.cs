@@ -278,6 +278,62 @@ namespace RockSnifferLib.Cache
             return null;
         }
 
+        public List<SongDetailsCustomsForge> GetAllDLCSongs()
+        {
+            var lst = new List<SongDetailsCustomsForge>();
+
+            using (var cmd = Connection.CreateCommand())
+            {
+                cmd.CommandText = @"SELECT * FROM songs WHERE psarcFile LIKE '%\dlc\%' AND psarcFile NOT LIKE '%rs1compatibility_%.psarc'";
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var sd = new SongDetailsCustomsForge
+                        {
+                            songID = reader.GetString(reader.GetOrdinal("songid")),
+                            songName = reader.GetString(reader.GetOrdinal("songname")),
+                            artistName = reader.GetString(reader.GetOrdinal("artistname")),
+                            albumName = reader.GetString(reader.GetOrdinal("albumname")),
+                            songLength = reader.GetFloat(reader.GetOrdinal("songLength")),
+                            albumYear = reader.GetInt32(reader.GetOrdinal("albumYear")),
+                            arrangements = JsonConvert.DeserializeObject<List<ArrangementDetails>>(reader.GetString(reader.GetOrdinal("arrangements"))),
+                            albumArt = null,
+
+                            toolkit = new ToolkitDetails
+                            {
+                                version = ReadField<string>(reader, "toolkit_version"),
+                                author = ReadField<string>(reader, "toolkit_author"),
+                                package_version = ReadField<string>(reader, "toolkit_package_version"),
+                                comment = ReadField<string>(reader, "toolkit_comment")
+                            },
+
+                            psarcFile = reader.GetString(reader.GetOrdinal("psarcFile"))
+                        };
+
+                        try
+                        {
+                            var blob = ReadField<byte[]>(reader, "album_art");
+
+                            using (var ms = new MemoryStream(blob))
+                            {
+                                sd.albumArt = Image.FromStream(ms);
+                            }
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+
+                        lst.Add(sd);
+                    }
+                }
+            }
+
+            return lst;
+        }
+
         private T ReadField<T>(SQLiteDataReader reader, string field)
         {
             int ordinal = reader.GetOrdinal(field);
