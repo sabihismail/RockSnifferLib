@@ -27,7 +27,7 @@ namespace RockSnifferLib.RSHelpers
         /// </summary>
         public void TriggerEnumeration()
         {
-            IntPtr addr = FollowPointers(0xF71E10, new int[] { 0x8, 0x4 });
+            IntPtr addr = FollowPointers(0xF71E10+0x3080, new int[] { 0x8, 0x4 });
 
             MemoryHelper.WriteBytesToMemory(rsProcessHandle, addr, new byte[] { 0x01 });
         }
@@ -40,20 +40,22 @@ namespace RockSnifferLib.RSHelpers
         {
             // SONG ID
             //
-            // Seems to be a zero terminated string in the format: Song_SONGID_Preview
+            // Seems to be a zero terminated string in the format: Play_SONGID_Preview
             //
             //Candidate #1: FollowPointers(0x00F5C494, new int[] { 0xBC, 0x0 })
             //Candidate #2: FollowPointers(0x00F80CEC, new int[] { 0x598, 0x1B8, 0x0 })
             //Candidate #3: FollowPointers(0x00F5DAFC, new int[] { 0x608, 0x1B8, 0x0 })
-            string preview_name = MemoryHelper.ReadStringFromMemory(rsProcessHandle, FollowPointers(0x00F5C494, new int[] { 0xBC, 0x0 }));
+            string preview_name = MemoryHelper.ReadStringFromMemory(rsProcessHandle, FollowPointers(0x00F5C494+0x3080, new int[] { 0xBC, 0x0 }));
 
             //If there was string in memory
             if (preview_name != null)
             {
-                //Verify Play_ prefix and _Preview suffix
-                if (preview_name.StartsWith("Play_") && preview_name.EndsWith("_Preview"))
+                //Verify Play_ prefix and _Preview or _Invalid suffix
+                //_Invalid suffix is applied to all song previews, and replaces _Preview, when a RSMods user has the "Disable Song Preview" mod enabled.
+                //_Invalid is used to prevent the song preview from being played in-game, but in this case we want to know when that event is triggered.
+                if (preview_name.StartsWith("Play_") && (preview_name.EndsWith("_Preview") || preview_name.EndsWith("_Invalid")))
                 {
-                    //Remove Play_ prefix and _Preview suffix
+                    //Remove Play_ prefix and _Preview or _Invalid suffix
                     string song_id = preview_name.Substring(5, preview_name.Length - 13);
 
                     //Assign to readout
@@ -66,12 +68,12 @@ namespace RockSnifferLib.RSHelpers
             //Weird static address: FollowPointers(0x01567AB0, new int[]{ 0x80, 0x20, 0x10C, 0x244 })
             //Candidate #1: FollowPointers(0x00F5C5AC, new int[] { 0xB0, 0x538, 0x8 })
             //Candidate #2: FollowPointers(0x00F5C4CC, new int[] { 0x5F0, 0x538, 0x8 })
-            ReadSongTimer(FollowPointers(0x00F5C5AC, new int[] { 0xB0, 0x538, 0x8 }));
+            ReadSongTimer(FollowPointers(0x00F5C5AC+0x3080, new int[] { 0xB0, 0x538, 0x8 }));
 
             // ARRANGEMENT HASH
             //
             // This is set to the arrangement persistent id while playing a song
-            string arrangement_hash = MemoryHelper.ReadStringFromMemory(rsProcessHandle, FollowPointers(0x00F5C5AC, new int[] { 0x18, 0x18, 0xC, 0x1C0, 0x0 }));
+            string arrangement_hash = MemoryHelper.ReadStringFromMemory(rsProcessHandle, FollowPointers(0x00F5C5AC+0x3080, new int[] { 0x18, 0x18, 0xC, 0x1C0, 0x0 }));
             if (arrangement_hash != null)
             {
                 readout.arrangementID = arrangement_hash;
@@ -83,17 +85,17 @@ namespace RockSnifferLib.RSHelpers
             // Can be garbled under unknown circumstances
             // Exists in two (and probably more) locations, where only one may be valid, this tries to get either
             // Prioritizing the one at 0x27C, because it is more human readable
-            string game_stage = MemoryHelper.ReadStringFromMemory(rsProcessHandle, FollowPointers(0x00F5C5AC, new int[] { 0x18, 0x18, 0xC, 0x27C }));
+            string game_stage = MemoryHelper.ReadStringFromMemory(rsProcessHandle, FollowPointers(0x00F5C5AC+0x3080, new int[] { 0x18, 0x18, 0xC, 0x27C }));
             if (game_stage == null)
             {
-                game_stage = MemoryHelper.ReadStringFromMemory(rsProcessHandle, FollowPointers(0x00F5C5AC, new int[] { 0x18, 0x18, 0xC, 0x14 }));
+                game_stage = MemoryHelper.ReadStringFromMemory(rsProcessHandle, FollowPointers(0x00F5C5AC+0x3080, new int[] { 0x18, 0x18, 0xC, 0x14 }));
             }
 
             //If we got a game stage
             if (game_stage != null)
             {
                 //Verify that it is at least 4 characters long, to filter out more garbage
-                if (game_stage.Length > 4)
+                if (game_stage.Length >= 4)
                 {
                     readout.gameStage = game_stage;
                 }
@@ -111,10 +113,10 @@ namespace RockSnifferLib.RSHelpers
 
             //If note data is not valid, try the next mode
             //Learn a song
-            if (!ReadNoteData(FollowPointers(0x00F5C5AC, new int[] { 0xB0, 0x18, 0x4, 0x84, 0x0 })))
+            if (!ReadNoteData(FollowPointers(0x00F5C5AC+0x3080, new int[] { 0xB0, 0x18, 0x4, 0x84, 0x0 })))
             {
                 //Score attack
-                if (!ReadScoreAttackNoteData(FollowPointers(0x00F5C5AC, new int[] { 0xB0, 0x18, 0x4, 0x4C, 0x0 })))
+                if (!ReadScoreAttackNoteData(FollowPointers(0x00F5C5AC+0x3080, new int[] { 0xB0, 0x18, 0x4, 0x4C, 0x0 })))
                 {
                     readout.mode = RSMode.UNKNOWN;
                 }

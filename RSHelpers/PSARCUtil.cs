@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
 
@@ -44,6 +43,7 @@ namespace RockSnifferLib.RSHelpers
                     using (FileStream stream = fileInfo.OpenRead())
                     {
                         stream.Close();
+                        break; // break when file was successfully opened
                     }
                 }
                 catch
@@ -105,7 +105,8 @@ namespace RockSnifferLib.RSHelpers
                     var arrangement = v.Attributes;
                     var arrangement_id = arrangement.PersistentID;
 
-                    var arrangementSng = loader.InflateEntry<SngAsset>(a => a.Path.Equals($"songs/bin/generic/{arrangement.SongXml.Substring(20)}.sng"));
+                    var sngPath = $"songs/bin/generic/{arrangement.SongXml.Substring(20)}.sng";
+                    var arrangementSng = loader.InflateEntry<SngAsset>(a => a.Path.Equals(sngPath));
                     ArrangementData arrangementData = new ArrangementData(arrangementSng);
 
                     if (arrangement.Phrases != null)
